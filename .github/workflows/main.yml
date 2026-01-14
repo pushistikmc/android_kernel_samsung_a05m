@@ -12,7 +12,7 @@ jobs:
         uses: dabao1955/kernel_build_action@main
         with:
           kernel-url: https://github.com/pushistikMC/android_kernel_samsung_a05m
-          kernel-branch: main
+          kernel-branch: kvm
           config: a05m_defconfig
           arch: arm64
           aosp-gcc: true
@@ -20,5 +20,5 @@ jobs:
           android-version: 11
           aosp-clang-version: r383902
           ccache: true
-          kvm: false
+          kvm: true
           anykernel3: true
