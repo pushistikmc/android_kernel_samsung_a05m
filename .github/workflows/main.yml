@@ -12,7 +12,7 @@ jobs:
         uses: dabao1955/kernel_build_action@main
         with:
           kernel-url: https://github.com/pushistikMC/android_kernel_samsung_a05m
-          kernel-branch: main
+          kernel-branch: crosvm
           config: a05m_defconfig
           arch: arm64
           aosp-gcc: true
