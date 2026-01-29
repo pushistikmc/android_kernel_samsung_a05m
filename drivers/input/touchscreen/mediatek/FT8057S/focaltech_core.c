@@ -51,7 +51,6 @@
 #define FTS_SUSPEND_LEVEL 1     /* Early-suspend level */
 #endif
 #include "focaltech_core.h"
-#include <drm/drm_mipi_dsi.h>
 
 /*****************************************************************************
 * Private constant and macro definitions using #define
