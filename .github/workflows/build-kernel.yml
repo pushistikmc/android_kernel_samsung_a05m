@@ -23,18 +23,19 @@ jobs:
 
       - name: Download Toolchain
         run: |
-          mkdir -p toolchain/clang
-          mkdir -p toolchain/gcc
+          mkdir -p toolchain/clang/host/linux-x86
+          mkdir -p toolchain/gcc/linux-x86/aarch64
           
           aria2c -s16 -x16 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android11-release/clang-r383902.tar.gz
-          tar -C toolchain/clang -xzf clang-r383902.tar.gz
+          mkdir -p toolchain/clang/host/linux-x86/clang-r383902
+          tar -C toolchain/clang/host/linux-x86/clang-r383902 -xzf clang-r383902.tar.gz
           
-          git clone -b android11-release --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 toolchain/gcc
+          git clone -b android11-release --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
 
       - name: Build Kernel
         run: |
-          export CROSS_COMPILE=$(pwd)/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-androidkernel-
-          export CC=$(pwd)/toolchain/clang/bin/clang
+          export CROSS_COMPILE=$(pwd)/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+          export CC=$(pwd)/toolchain/clang/host/linux-x86/clang-r383902/bin/clang
           export CLANG_TRIPLE=aarch64-linux-gnu-
           export ARCH=arm64
 
@@ -42,8 +43,9 @@ jobs:
           export CONFIG_SECTION_MISMATCH_WARN_ONLY=y
 
           mkdir -p out
-          make -C $(pwd) O=$(pwd)/out KCFLAGS=-w CONFIG_SECTION_MISMATCH_WARN_ONLY=y a05m_defconfig
-          make -C $(pwd) O=$(pwd)/out KCFLAGS=-w CONFIG_SECTION_MISMATCH_WARN_ONLY=y -j$(nproc --all)
+          
+          make -C $(pwd) O=$(pwd)/out a05m_defconfig
+          make -C $(pwd) O=$(pwd)/out -j$(nproc --all)
 
       - name: Check for Output
         run: |
