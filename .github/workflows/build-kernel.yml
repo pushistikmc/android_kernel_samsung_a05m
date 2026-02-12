@@ -24,37 +24,33 @@ jobs:
       - name: Download Toolchain
         run: |
           mkdir -p toolchain
-          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 toolchain/clang
+          git clone -b android11-release --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 toolchain/clang
 
       - name: Build Kernel
         run: |
-          export PATH="$(pwd)/toolchain/clang/bin:$PATH"
+          export CROSS_COMPILE=$(pwd)/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-androidkernel-
+          export CC=$(pwd)/toolchain/clang/host/linux-x86/clang-r383902/bin/clang
+          export CLANG_TRIPLE=aarch64-linux-gnu-
           export ARCH=arm64
-          export SUBARCH=arm64
-          export CROSS_COMPILE=aarch64-linux-gnu-
-          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
-          export CC=clang
+
+          export KCFLAGS=-w
+          export CONFIG_SECTION_MISMATCH_WARN_ONLY=y
           
-          DEFCONFIG=a05m_defconfig
-          
-          make O=out $DEFCONFIG
-          make -j$(nproc --all) O=out \
-            CC=clang \
-            CROSS_COMPILE=aarch64-linux-gnu- \
-            CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+          make -C $(pwd) O=$(pwd)/out KCFLAGS=-w CONFIG_SECTION_MISMATCH_WARN_ONLY=y a05m_defconfig
+          make -C $(pwd) O=$(pwd)/out KCFLAGS=-w CONFIG_SECTION_MISMATCH_WARN_ONLY=y -j$(nproc --all)
 
       - name: Check for Output
         run: |
-          if [ -f out/arch/arm64/boot/Image.gz ]; then
+          if [ -f out/arch/arm64/boot/Image ]; then
               echo "Build successful!"
           else
-              echo "Build failed: Image.gz not found"
+              echo "Build failed: Image not found"
               exit 1
           fi
 
       - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Kernel-Image-GZ
-          path: out/arch/arm64/boot/Image.gz
+          name: Kernel-Image
+          path: out/arch/arm64/boot/Image
           compression-level: 9
