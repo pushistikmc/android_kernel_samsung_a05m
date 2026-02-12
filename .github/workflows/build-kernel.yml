@@ -24,7 +24,7 @@ jobs:
       - name: Download Toolchain
         run: |
           mkdir -p toolchain
-          git clone -b android11-release --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 toolchain/clang
+          git clone -b android11-release --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 toolchain
 
       - name: Build Kernel
         run: |
