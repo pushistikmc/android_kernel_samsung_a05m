@@ -1,0 +1,60 @@
+name: Android Kernel Build (custom script)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Kernel Source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc build-essential flex bison gperf libbundle-perl \
+            libssl-dev libcrypto++-dev libncurses5-dev libncurses-dev \
+            libelf-dev python3 python2 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
+            clang lld llvm
+
+      - name: Download Toolchain
+        run: |
+          mkdir -p toolchain
+          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 toolchain/clang
+
+      - name: Build Kernel
+        run: |
+          export PATH="$(pwd)/toolchain/clang/bin:$PATH"
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+          export CC=clang
+          
+          DEFCONFIG=a05m_defconfig
+          
+          make O=out $DEFCONFIG
+          make -j$(nproc --all) O=out \
+            CC=clang \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+
+      - name: Check for Output
+        run: |
+          if [ -f out/arch/arm64/boot/Image.gz ]; then
+              echo "Build successful!"
+          else
+              echo "Build failed: Image.gz not found"
+              exit 1
+          fi
+
+      - name: Upload Kernel Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kernel-Image-GZ
+          path: out/arch/arm64/boot/Image.gz
+          compression-level: 9
