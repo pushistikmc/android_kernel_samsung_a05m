@@ -9,9 +9,10 @@ jobs:
     
     steps:
       - name: Checkout Kernel Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
+          ref: main
 
       - name: Set up Build Environment
         run: |
