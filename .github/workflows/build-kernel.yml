@@ -1,0 +1,65 @@
+name: Android Kernel Build (custom script)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Kernel Source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          ref: crosvm
+
+      - name: Set up Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            binutils git make bc bison openssl curl zip kmod cpio flex libelf-dev \
+            libssl-dev libtfm-dev libc6-dev device-tree-compiler ca-certificates \
+            python3 xz-utils aria2 build-essential ccache pigz parallel jq opam libpcre3-dev
+
+      - name: Download Toolchain
+        run: |
+          mkdir -p toolchain/clang/host/linux-x86
+          mkdir -p toolchain/gcc/linux-x86/aarch64
+          
+          aria2c -s16 -x16 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android11-release/clang-r383902.tar.gz
+          mkdir -p toolchain/clang/host/linux-x86/clang-r383902
+          tar -C toolchain/clang/host/linux-x86/clang-r383902 -xzf clang-r383902.tar.gz
+          
+          git clone -b android11-release --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
+
+      - name: Build Kernel
+        run: |
+          export CROSS_COMPILE=$(pwd)/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+          export CC=$(pwd)/toolchain/clang/host/linux-x86/clang-r383902/bin/clang
+          export CLANG_TRIPLE=aarch64-linux-gnu-
+          export ARCH=arm64
+
+          export KCFLAGS=-w
+          export CONFIG_SECTION_MISMATCH_WARN_ONLY=y
+
+          mkdir -p out
+          
+          make -C $(pwd) O=$(pwd)/out a05m_defconfig
+          make -C $(pwd) O=$(pwd)/out -j$(nproc --all)
+
+      - name: Check for Output
+        run: |
+          if [ -f out/arch/arm64/boot/Image ]; then
+              echo "Build successful!"
+          else
+              echo "Build failed: Image not found"
+              exit 1
+          fi
+
+      - name: Upload Kernel Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: Kernel-Image
+          path: out/arch/arm64/boot/Image
+          compression-level: 9
