@@ -48,10 +48,13 @@ jobs:
           
           make -C $(pwd) O=$(pwd)/out a05m_defconfig
           make -C $(pwd) O=$(pwd)/out -j$(nproc --all)
+          make -C $(pwd) O=$(pwd)/out -j$(nproc --all) dtbs
 
-      - name: Check ccache statistics
-        run: ccache -s
-
+      - name: Collect DTB files
+        run: |
+          mkdir -p out/collected_dtbs
+          find out/arch/arm64/boot/dts/ -name "*.dtb*" -exec cp {} out/collected_dtbs/ \;
+      
       - name: Check for output
         run: |
           if [ -f out/arch/arm64/boot/Image ]; then
@@ -61,9 +64,11 @@ jobs:
               exit 1
           fi
 
-      - name: Upload kernel artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
-          name: Kernel-Image
-          path: out/arch/arm64/boot/Image
+          name: Kernel
+          path: |
+            out/arch/arm64/boot/Image
+            out/collected_dtbs/*.dtb
           compression-level: 9
