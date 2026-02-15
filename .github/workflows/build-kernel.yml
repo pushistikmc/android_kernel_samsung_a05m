@@ -8,13 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout Kernel Source
+      - name: Checkout kernel source
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
           ref: main
 
-      - name: Set up Build Environment
+      - name: Set up build environment
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -22,7 +22,7 @@ jobs:
             libssl-dev libtfm-dev libc6-dev device-tree-compiler ca-certificates \
             python3 xz-utils aria2 build-essential ccache pigz parallel jq opam libpcre3-dev
 
-      - name: Download Toolchain
+      - name: Download toolchain
         run: |
           mkdir -p toolchain/clang/host/linux-x86
           mkdir -p toolchain/gcc/linux-x86/aarch64
@@ -33,24 +33,10 @@ jobs:
           
           git clone -b android11-release --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
 
-      - name: Setup Cache for ccache
-        uses: actions/cache@v5
-        with:
-          path: ~/.ccache
-          key: ${{ runner.os }}-ccache-${{ hashFiles('arch/arm64/configs/a05m_defconfig') }}
-          restore-keys: |
-            ${{ runner.os }}-ccache-
-
-      - name: Configure ccache
+      - name: Build kernel
         run: |
-          ccache --set-config=max_size=5G
-          ccache --set-config=compression=true
-          ccache -z
-
-      - name: Build Kernel
-        run: |
-          export CROSS_COMPILE="ccache $(pwd)/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-androidkernel-"
-          export CC="ccache $(pwd)/toolchain/clang/host/linux-x86/clang-r383092/bin/clang"
+          export CROSS_COMPILE=$(pwd)/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+          export CC=$(pwd)/toolchain/clang/host/linux-x86/clang-r383092/bin/clang
           export CLANG_TRIPLE=aarch64-linux-gnu-
           export ARCH=arm64
 
@@ -66,7 +52,7 @@ jobs:
       - name: Check ccache statistics
         run: ccache -s
 
-      - name: Check for Output
+      - name: Check for output
         run: |
           if [ -f out/arch/arm64/boot/Image ]; then
               echo "Build successful!"
@@ -75,7 +61,7 @@ jobs:
               exit 1
           fi
 
-      - name: Upload Kernel Artifact
+      - name: Upload kernel artifact
         uses: actions/upload-artifact@v6
         with:
           name: Kernel-Image
