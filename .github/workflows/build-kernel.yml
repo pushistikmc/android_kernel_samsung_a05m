@@ -33,10 +33,24 @@ jobs:
           
           git clone -b android11-release --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
 
+      - name: Setup Cache for ccache
+        uses: actions/cache@v5
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-${{ hashFiles('arch/arm64/configs/a05m_defconfig') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      - name: Configure ccache
+        run: |
+          ccache --set-config=max_size=5G
+          ccache --set-config=compression=true
+          ccache -z
+
       - name: Build Kernel
         run: |
-          export CROSS_COMPILE=$(pwd)/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-androidkernel-
-          export CC=$(pwd)/toolchain/clang/host/linux-x86/clang-r383092/bin/clang
+          export CROSS_COMPILE="ccache $(pwd)/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-androidkernel-"
+          export CC="ccache $(pwd)/toolchain/clang/host/linux-x86/clang-r383092/bin/clang"
           export CLANG_TRIPLE=aarch64-linux-gnu-
           export ARCH=arm64
 
@@ -48,6 +62,9 @@ jobs:
           
           make -C $(pwd) O=$(pwd)/out a05m_defconfig
           make -C $(pwd) O=$(pwd)/out -j$(nproc --all)
+
+      - name: Check ccache statistics
+        run: ccache -s
 
       - name: Check for Output
         run: |
